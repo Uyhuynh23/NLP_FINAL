@@ -1,19 +1,195 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    android:layout_height="match_parent">
 
-    <TextView
-        android:layout_width="wrap_content"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/main"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Hello World!"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:padding="16dp">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+        <TextView
+            android:id="@+id/title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Vietnamese TTS (Offline)"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:gravity="center"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginBottom="16dp" />
+
+        <EditText
+            android:id="@+id/input_text"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:hint="Enter Vietnamese text to speak"
+            android:minHeight="100dp"
+            android:inputType="textMultiLine"
+            android:gravity="top"
+            android:text="Xin chào! Đây là inference bằng ONNX của Piper."
+            app:layout_constraintTop_toBottomOf="@id/title"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="8dp" />
+
+        <!-- Inference Scales -->
+        <TextView
+            android:id="@+id/label_scales"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Inference Parameters"
+            android:textStyle="bold"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toBottomOf="@id/input_text"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+            android:id="@+id/label_noise_scale"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Noise Scale (variability): 0.667"
+            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toBottomOf="@id/label_scales"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <SeekBar
+            android:id="@+id/slider_noise_scale"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:max="200"
+            android:progress="67"
+            app:layout_constraintTop_toBottomOf="@id/label_noise_scale"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+            android:id="@+id/label_length_scale"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Length Scale (speed): 1.0"
+            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toBottomOf="@id/slider_noise_scale"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <SeekBar
+            android:id="@+id/slider_length_scale"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:max="200"
+            android:progress="100"
+            app:layout_constraintTop_toBottomOf="@id/label_length_scale"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+            android:id="@+id/label_noise_w"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Noise W (prosody): 0.8"
+            android:layout_marginTop="8dp"
+            app:layout_constraintTop_toBottomOf="@id/slider_length_scale"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <SeekBar
+            android:id="@+id/slider_noise_w"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:max="200"
+            android:progress="80"
+            app:layout_constraintTop_toBottomOf="@id/label_noise_w"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <!-- Buttons -->
+        <Button
+            android:id="@+id/btn_initialize"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Initialize Engine"
+            app:layout_constraintTop_toBottomOf="@id/slider_noise_w"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btn_speak"
+            app:layout_constraintWidth_percent="0.5"
+            android:layout_marginTop="16dp"
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/btn_speak"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Speak"
+            app:layout_constraintTop_toBottomOf="@id/slider_noise_w"
+            app:layout_constraintStart_toEndOf="@id/btn_initialize"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintWidth_percent="0.5"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="4dp" />
+
+        <Button
+            android:id="@+id/btn_save_wav"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Save WAV"
+            app:layout_constraintTop_toBottomOf="@id/btn_initialize"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btn_stop"
+            app:layout_constraintWidth_percent="0.5"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="4dp" />
+
+        <Button
+            android:id="@+id/btn_stop"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Stop"
+            app:layout_constraintTop_toBottomOf="@id/btn_speak"
+            app:layout_constraintStart_toEndOf="@id/btn_save_wav"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintWidth_percent="0.5"
+            android:layout_marginTop="8dp"
+            android:layout_marginStart="4dp" />
+
+        <ProgressBar
+            android:id="@+id/progress"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/btn_save_wav"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginTop="16dp" />
+
+        <TextView
+            android:id="@+id/status"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Press 'Initialize Engine' to start"
+            android:textSize="12sp"
+            app:layout_constraintTop_toBottomOf="@id/btn_save_wav"
+            app:layout_constraintStart_toEndOf="@id/progress"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="16dp" />
+
+        <TextView
+            android:id="@+id/details"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textSize="11sp"
+            android:fontFamily="monospace"
+            app:layout_constraintTop_toBottomOf="@id/status"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:layout_marginTop="8dp" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>
