@@ -28,6 +28,11 @@ android {
         }
     }
 
+    // Prevent compression of ONNX model files in assets
+    androidResources {
+        noCompress += listOf("onnx", "tflite", "bin")
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false

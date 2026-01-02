@@ -205,20 +205,61 @@ class OnnxInferenceEngine(
     private fun copyModelToFiles(assetPath: String): File {
         val modelFile = File(context.filesDir, "model.onnx")
 
+        // Get expected file size from assets
+        val expectedSize = try {
+            context.assets.openFd(assetPath).length
+        } catch (e: Exception) {
+            Log.w(TAG, "Could not determine asset file size", e)
+            -1L
+        }
+
+        // Check if existing file is valid
         if (modelFile.exists()) {
-            Log.d(TAG, "Model already exists at ${modelFile.absolutePath}")
-            return modelFile
+            val actualSize = modelFile.length()
+            if (expectedSize > 0 && actualSize == expectedSize) {
+                Log.d(TAG, "Model already exists and size matches at ${modelFile.absolutePath} (${actualSize} bytes)")
+                return modelFile
+            } else {
+                Log.w(TAG, "Model file exists but size mismatch. Expected: $expectedSize, Actual: $actualSize. Re-copying...")
+                modelFile.delete()
+            }
         }
 
         try {
+            Log.i(TAG, "Copying model from assets to ${modelFile.absolutePath}...")
+
             context.assets.open(assetPath).use { input ->
                 modelFile.outputStream().use { output ->
-                    input.copyTo(output)
+                    val buffer = ByteArray(8192)
+                    var bytesRead: Int
+                    var totalBytes = 0L
+
+                    while (input.read(buffer).also { bytesRead = it } != -1) {
+                        output.write(buffer, 0, bytesRead)
+                        totalBytes += bytesRead
+                    }
+                    output.flush()
+
+                    Log.i(TAG, "Copied $totalBytes bytes to ${modelFile.absolutePath}")
                 }
             }
-            Log.i(TAG, "Copied model to ${modelFile.absolutePath}")
+
+            // Verify the copied file
+            val copiedSize = modelFile.length()
+            if (expectedSize > 0 && copiedSize != expectedSize) {
+                Log.e(TAG, "File copy size mismatch! Expected: $expectedSize, Got: $copiedSize")
+                modelFile.delete()
+                throw IllegalStateException("Model file copy incomplete or corrupted")
+            }
+
+            Log.i(TAG, "Model copied and verified successfully")
+
         } catch (e: Exception) {
             Log.e(TAG, "Failed to copy model from assets", e)
+            if (modelFile.exists()) {
+                modelFile.delete()
+            }
+            throw e
         }
 
         return modelFile
