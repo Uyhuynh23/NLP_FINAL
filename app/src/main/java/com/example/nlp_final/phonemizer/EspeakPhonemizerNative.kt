@@ -6,35 +6,37 @@ import java.io.File
 
 /**
  * Native wrapper for espeak-ng phonemization
+ * Falls back to VietnamesePhonemeMapper when native library is not available
  */
 class EspeakPhonemizerNative(private val context: Context) {
 
     companion object {
         private const val TAG = "EspeakNative"
         private var initialized = false
+        private var nativeAvailable = false
 
         init {
             try {
                 System.loadLibrary("espeak_phonemizer")
+                nativeAvailable = true
                 Log.i(TAG, "Loaded espeak_phonemizer native library")
             } catch (e: UnsatisfiedLinkError) {
-                Log.e(TAG, "Failed to load espeak_phonemizer library", e)
+                Log.w(TAG, "Native espeak library not available, using fallback phonemizer")
+                nativeAvailable = false
             }
         }
     }
 
+    // Fallback phonemizer for when native is not available
+    private val fallbackMapper = VietnamesePhonemeMapper()
+
     /**
      * Initialize espeak-ng with data path
-     * @param dataPath path to espeak-ng-data directory
-     * @return true if successful
      */
     private external fun nativeInit(dataPath: String): Boolean
 
     /**
      * Phonemize text using espeak-ng
-     * @param text input text
-     * @param voice voice identifier (e.g., "vi")
-     * @return phoneme string or null on error
      */
     private external fun nativePhonemize(text: String, voice: String): String?
 
@@ -49,8 +51,14 @@ class EspeakPhonemizerNative(private val context: Context) {
     fun initialize(voice: String = "vi"): Boolean {
         if (initialized) return true
 
+        // If native library is not available, use fallback
+        if (!nativeAvailable) {
+            Log.i(TAG, "Using fallback Vietnamese phoneme mapper")
+            initialized = true
+            return true
+        }
+
         try {
-            // Extract espeak-ng-data from assets if needed
             val dataDir = File(context.filesDir, "espeak-ng-data")
             if (!dataDir.exists()) {
                 Log.i(TAG, "Extracting espeak-ng-data from assets...")
@@ -62,12 +70,14 @@ class EspeakPhonemizerNative(private val context: Context) {
                 initialized = true
                 Log.i(TAG, "Espeak initialized successfully with voice: $voice")
             } else {
-                Log.e(TAG, "Failed to initialize espeak")
+                Log.w(TAG, "Native espeak init failed, using fallback phonemizer")
+                initialized = true
             }
-            return success
+            return true
         } catch (e: Exception) {
-            Log.e(TAG, "Exception during espeak initialization", e)
-            return false
+            Log.e(TAG, "Exception during espeak initialization, using fallback", e)
+            initialized = true
+            return true
         }
     }
 
@@ -77,33 +87,29 @@ class EspeakPhonemizerNative(private val context: Context) {
     fun phonemize(text: String, voice: String = "vi"): String {
         if (!initialized) {
             if (!initialize(voice)) {
-                Log.w(TAG, "Espeak not initialized, returning fallback")
-                return fallbackPhonemize(text)
+                return ""
             }
         }
 
-        return try {
-            nativePhonemize(text, voice) ?: fallbackPhonemize(text)
-        } catch (e: Exception) {
-            Log.e(TAG, "Exception during phonemization", e)
-            fallbackPhonemize(text)
+        // Try native phonemization first if available
+        if (nativeAvailable) {
+            try {
+                val out = nativePhonemize(text, voice)
+                if (!out.isNullOrBlank()) {
+                    Log.d(TAG, "Native phonemization: '$text' -> '$out'")
+                    return out
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Native phonemization failed, using fallback", e)
+            }
         }
+
+        // Use fallback Vietnamese phoneme mapper
+        val result = fallbackMapper.phonemize(text)
+        Log.d(TAG, "Fallback phonemization: '$text' -> '$result'")
+        return result
     }
 
-    /**
-     * Simple fallback phonemizer (character-level)
-     */
-    private fun fallbackPhonemize(text: String): String {
-        // For Vietnamese, this is a very naive fallback
-        // Real espeak would produce proper IPA, but this gives us something
-        return text.lowercase()
-            .replace(Regex("\\s+"), " ")
-            .trim()
-    }
-
-    /**
-     * Extract espeak-ng-data from assets
-     */
     private fun extractEspeakData(targetDir: File) {
         try {
             targetDir.mkdirs()
@@ -119,10 +125,8 @@ class EspeakPhonemizerNative(private val context: Context) {
         try {
             val files = assets.list(assetPath) ?: arrayOf()
             if (files.isEmpty()) {
-                // It's a file
                 copyAssetFile(assetPath, targetPath)
             } else {
-                // It's a folder
                 val targetDir = File(targetPath)
                 targetDir.mkdirs()
                 for (file in files) {
@@ -151,7 +155,9 @@ class EspeakPhonemizerNative(private val context: Context) {
     fun cleanup() {
         if (initialized) {
             try {
-                nativeCleanup()
+                if (nativeAvailable) {
+                    nativeCleanup()
+                }
                 initialized = false
                 Log.i(TAG, "Espeak cleaned up")
             } catch (e: Exception) {
